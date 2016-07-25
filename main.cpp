@@ -4,18 +4,24 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <opencv2\opencv.hpp>
+
+#define _LRS_USE_WSTRING
+#include "LRS.h"
 
 using namespace std;
-
-typedef vector<bool> record;
+using namespace cv;
 
 string inpath;
 wfstream infile;
 int namecount= 0;
 int daycount = 0;
-map<wstring, int> pairs;
+int linecount = 0;
+map<wstring, int> namepairs;
+map<wstring, int> datepairs;
 vector<wstring> namelist;
-vector<record> table;
+vector<wstring> datelist;
+Mat dataframe;
 
 int main(int argc, char **argv)
 {
@@ -47,48 +53,67 @@ int main(int argc, char **argv)
 	{
 		//wcout << date << endl << name << endl;
 		//system("pause");
-		if (pairs.find(name)==pairs.end())
+		linecount++;
+		if (namepairs.find(name) == namepairs.end())
 		{
-			pairs.insert(pair<wstring, int>(name, namecount++));
+			namepairs.insert(pair<wstring, int>(name, namecount++));
 			namelist.push_back(name);
+		}
+		if (datepairs.find(date) == datepairs.end())
+		{
+			datepairs.insert(pair<wstring, int>(date, daycount++));
+			datelist.push_back(date);
 		}
 		infile >> date >> name;
 	}
 	wcout << "endinput" << endl;
-	wcout << "count=" << namecount << endl;
-	//for (int i = 0; i < namecount; i++)
-	//{
-	//	wcout << namelist[i] << endl;
-	//}
-	infile.seekg(0);
-	wstring ldate;
-	infile >> date >> name;
-	ldate = date;
-	record sub = record(namecount);
-	for (int i = 0; i < namecount; i++)
-	{
-		sub[i] = false;
-	}
-	while (!infile.eof())
-	{
-		if (ldate == date)
-		{
-			sub[pairs[name]] = true;
-		}
-		else
-		{
-			table.push_back(sub);
-			sub = record(namecount);
-			for (int i = 0; i < namecount; i++)
-			{
-				sub[i] = false;
-			}
-			ldate = date;
-			sub[pairs[name]] = true;
-		}
-		infile >> date >> name;
-	}
+	wcout << "linecount=" << linecount << endl;
+	wcout << "namecount=" << namecount << endl;
+	wcout << "datecount=" << daycount << endl;
+	infile.close();
 
-	system("pause");
+	infile.open(inpath, ios::in);
+	if (infile.fail())
+	{
+		cout << "Cannot open file " << inpath << endl;
+		cout << "Please check the path" << endl;
+		return 2;
+	}
+	dataframe = Mat(daycount, namecount, CV_8UC1, Scalar::all(0));
+	Mat toshow = dataframe.clone();
+	for (int i = 0; i < linecount; i++)
+	{
+		infile >> date >> name;
+		int daten = datepairs[date];
+		int namen = namepairs[name];
+		dataframe.at<uchar>(daten, namen) = (uchar)1;
+		toshow.at<uchar>(daten, namen) = (uchar)255;
+	}
+	dataframe = dataframe.t();
+	toshow = toshow.t();
+	//imshow("dataframe", toshow);
+	//waitKey(0);
+	//imwrite("dataframe.png", toshow);
+	
+	LRSTools_ViewSubjectRlt(dataframe);
+
+	Mat U = GenerateU(dataframe);
+
+	Mat sigma = GenerateSigma(U);
+
+	Mat S = GenerateS(U, sigma);
+
+#define thresdate 25000
+#define thresname 100000
+
+	//Cluster cluster = LRS(S, thresname, thresname);
+
+	//cluster.takename(namelist);
+
+	//cluster.fprint("result.txt");
+
+	//system("pause");
+
+	LRSTools_GenerateUIView(S, namelist);
 	return 0;
 }

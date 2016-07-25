@@ -1,0 +1,302 @@
+mt 1e6
+md 1e6
+mr 0.9
+m 1e6
+cthres 3
+
+Cluster #0: 
+2 米饭 
+7 阿里山猴头菇 
+13 老兵豆腐煲 
+21 香酥腐皮卷 
+53 台湾新竹炒米粉 
+
+Cluster #1: 
+0 A套餐 
+11 B套餐 
+
+Cluster #2: 
+2 米饭 
+7 阿里山猴头菇 
+21 香酥腐皮卷 
+26 时蔬水饺 
+53 台湾新竹炒米粉 
+
+Cluster #3: 
+2 米饭 
+5 竹荪素烩 
+7 阿里山猴头菇 
+21 香酥腐皮卷 
+53 台湾新竹炒米粉 
+
+Cluster #4: 
+2 米饭 
+7 阿里山猴头菇 
+29 松子素鱼 
+
+Cluster #5: 
+2 米饭 
+9 台中串串烧 
+
+Cluster #6: 
+2 米饭 
+31 台北咖喱煲 
+
+Cluster #7: 
+2 米饭 
+12 佛跳墙（例） 
+
+Cluster #8: 
+2 米饭 
+56 土豆色拉 
+
+Cluster #9: 
+2 米饭 
+39 九层塔茄子 
+
+Cluster #10: 
+2 米饭 
+8 台南酸菜鱼 
+
+Cluster #11: 
+2 米饭 
+46 芦笋炒松露 
+
+Cluster #12: 
+16 椒盐茶树菇 
+
+Cluster #13: 
+2 米饭 
+38 干锅有机花菜 
+
+Cluster #14: 
+14 荠菜山药羹 
+
+Cluster #15: 
+36 素咸肉菜炒饭 
+
+Cluster #16: 
+33 佛跳墙（盅） 
+
+Cluster #17: 
+3 素羊肉串 
+
+Cluster #18: 
+30 包装盒 
+
+Cluster #19: 
+17 素炒宝黄 
+
+Cluster #20: 
+20 铁板千叶豆腐 
+
+Cluster #21: 
+43 素什锦汤面 
+
+Cluster #22: 
+19 酸辣土豆丝 
+
+Cluster #23: 
+1 糖醋素排骨 
+
+Cluster #24: 
+18 时令广东菜心-白灼 
+
+Cluster #25: 
+62 养生锅 
+
+Cluster #26: 
+10 一品素海鲜锅 
+
+Cluster #27: 
+6 陈皮素牛肉 
+
+Cluster #28: 
+58 麻辣豆腐 
+
+Cluster #29: 
+23 四喜烤麸 
+
+Cluster #30: 
+45 黑麦汁 
+
+Cluster #31: 
+44 素肉饼蒸旦 
+
+Cluster #32: 
+37 土豆烧素牛肉 
+
+Cluster #33: 
+27 酸辣汤 
+
+Cluster #34: 
+54 酸辣菇菇锅 
+
+Cluster #35: 
+55 三鲜面疙瘩 
+
+Cluster #36: 
+25 任意 
+
+Cluster #37: 
+68 上汤娃娃菜 
+
+Cluster #38: 
+52 干锅茶树菇 
+
+Cluster #39: 
+32 时令四季豆-干扁 
+
+Cluster #40: 
+34 芥末木耳 
+
+Cluster #41: 
+76 台北咖喱炒饭 
+
+Cluster #42: 
+28 香椿素狮子头 
+
+Cluster #43: 
+74 榄菜山药 
+
+Cluster #44: 
+63 香椿干拌面 
+
+Cluster #45: 
+79 台北咖喱汤面 
+
+Cluster #46: 
+60 羊城炒饭 
+
+Cluster #47: 
+41 糖醋山药排 
+
+Cluster #48: 
+75 铁板黑椒排 
+
+Cluster #49: 
+24 八珍菜 
+
+Cluster #50: 
+51 南瓜羹 
+
+Cluster #51: 
+67 汤米粉 
+
+Cluster #52: 
+64 绚丽多彩杯 
+
+Cluster #53: 
+82 金姜奶茶 
+
+Cluster #54: 
+81 红韵红茶 
+
+Cluster #55: 
+83 汤水饺 
+
+Cluster #56: 
+35 时令芥蓝-白灼 
+
+Cluster #57: 
+92 兰韵四季春 
+
+Cluster #58: 
+80 时令芥蓝-清炒 
+
+Cluster #59: 
+73 水煮素鱼片 
+
+Cluster #60: 
+88 时令四季豆-榄菜 
+
+Cluster #61: 
+4 宫保吉丁 
+
+Cluster #62: 
+87 姜汁吉 
+
+Cluster #63: 
+86 西兰花-素蚝油 
+
+Cluster #64: 
+69 台湾伯朗现磨咖啡 
+
+Cluster #65: 
+59 番茄土豆汤 
+
+Cluster #66: 
+94 如意三宝 
+
+Cluster #67: 
+72 时令蔬菜 
+
+Cluster #68: 
+22 黄金荷包蛋 
+
+Cluster #69: 
+70 卡布奇诺 
+
+Cluster #70: 
+85 豆浆 
+
+Cluster #71: 
+84 时令四季豆-清炒 
+
+Cluster #72: 
+66 东坡素肉 
+
+Cluster #73: 
+89 遇见 
+
+Cluster #74: 
+42 蓝莓汁 
+
+Cluster #75: 
+50 香油金针菇 
+
+Cluster #76: 
+90 美容大师 
+
+Cluster #77: 
+95 米汤黄耳烩芥菜 
+
+Cluster #78: 
+71 拿铁咖啡 
+
+Cluster #79: 
+49 黑椒野秘菇 
+
+Cluster #80: 
+40 西兰花-宝黄 
+
+Cluster #81: 
+91 清火战士 
+
+Cluster #82: 
+78 幸福缔造者 
+
+Cluster #83: 
+47 素红叉烧 
+
+Cluster #84: 
+93 泰式冬阴功 
+
+Cluster #85: 
+61 椒麻双菇 
+
+Cluster #86: 
+48 蓝莓山药 
+
+Cluster #87: 
+65 时令广东菜心-清炒 
+
+Cluster #88: 
+15 山城辣子吉 
+
+Cluster #89: 
+57 桃香双脆 
+
+Cluster #90: 
+77 大碗米饭 
+
