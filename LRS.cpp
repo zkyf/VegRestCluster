@@ -1,3 +1,5 @@
+#include <Windows.h>
+
 #include "LRS.h"
 
 //#define DEBUG
@@ -8,10 +10,10 @@
 
 const double SNE = 1E-10;
 
-static int mouse_event;
-static int mouse_flags;
-static int mouse_counter;
-static Point mouse_pos;
+static int _mouse_event;
+static int _mouse_flags;
+static int _mouse_counter;
+static Point _mouse_pos;
 
 void Cluster::takename(vector<wstring> &nl)
 {
@@ -285,7 +287,7 @@ Cluster LRS(Mat S, double Mt, double M, double Mr)
 		vector<pair<int, double>> choices;
 		for (int i = 0; i < cols; i++)
 		{
-			if (S.at<double>(i, maxn)<Mt)
+			if (S.at<double>(i, maxn)>Mt)
 			{
 				choices.push_back(pair<int, double>(i, S.at<double>(i, maxn)));
 #if defined DEBUG
@@ -304,7 +306,7 @@ Cluster LRS(Mat S, double Mt, double M, double Mr)
 			for (set<int>::iterator j = cluster.begin();
 					 j != cluster.end(); j++)
 			{
-				if (S.at<double>(choices[i].first, *j)<M) count++;
+				if (S.at<double>(choices[i].first, *j)>M) count++;
 			}
 			double r = count*1.0 / cluster.size();
 #if defined DEBUG
@@ -478,393 +480,446 @@ Cluster ui_getItemlist(Mat S, double Mt, double M, double Mr, int cthres,
 
 static void mouseCallBack(int event, int x, int y, int flags, void* ustc)
 {
-	mouse_event = event;
-	mouse_pos = Point(x, y);
-	mouse_flags = flags;
-	if(mouse_event == CV_EVENT_LBUTTONDOWN) mouse_counter++;
-	//cout << "mm " << mouse_counter << endl;
+	_mouse_event = event;
+	_mouse_pos = Point(x, y);
+	_mouse_flags = flags;
+	if(_mouse_event == CV_EVENT_LBUTTONDOWN) _mouse_counter++;
+	//cout << "mm " << _mouse_counter << endl;
 }
 
-void LRSTools_GenerateUIView(Mat _S, vector<wstring> namelist)
+const int cr = 3;
+const Scalar line_s = Scalar(0, 0, 225);
+const Scalar line_n = Scalar(200, 200, 200);
+const int minr = 5;
+
+static int counter = 0;
+static int width = 640;
+static int height = 480;
+static int cthres = 3;
+static int nowselect = -1;
+static int nowmove = -1;
+static int showcluster = -1;
+static int lastclick = _mouse_counter;
+static int state = 0;
+static double Mt = 200000;
+static double M = 200000;
+static double Mr = 0.8;
+static double Md = 200000;
+static double alpha = 0.3;
+static Cluster cluster;
+static bool changed = false;
+static vector<Item> itemlist;
+static bool *connected = NULL;
+static bool *seen = NULL;
+static bool *available = NULL;
+static bool *hasline = NULL;
+static Mat _S;
+static vector<wstring> namelist;
+static bool __status_painter_on = false;
+
+DWORD WINAPI draw_graphics(LPVOID parameter)
 {
-	const int cr = 3;
-	const Scalar line_s = Scalar(0, 0, 225);
-	const Scalar line_n = Scalar(200, 200, 200);
-	const int minr = 5;
+  __status_painter_on = true;
+  // Initialize content
+  Mat S = _S.clone();
+  string winname = "Cluster View";
+  for (int i = 0; i < itemlist.size(); i++)
+  {
+    //cout << "i: " << i << endl;
+    available[i] = true;
+  }
+  Mat display(height, width, CV_8UC3, Scalar::all(255));
+  imshow(winname, display);
+  setMouseCallback(winname, mouseCallBack);
+  //cout << itemlist.size() << endl;
+  while (1)
+  {
+    //memset(connected, false, sizeof(connected));
+    for (int i = 0; i < itemlist.size(); i++)
+    {
+      connected[i] = false;
+      seen[i] = false;
+      hasline[i] = false;
+    }
+    display = Mat(height, width, CV_8UC3, Scalar::all(255));
+    // draw
+    for (int i = 0; i < cluster.size(); i++)
+    {
+      if (showcluster != -1)
+      {
+        if (showcluster != i) continue;
+      }
+      for (set<int>::iterator j = cluster[i].begin();
+        j != cluster[i].end(); j++)
+      {
+        for (set<int>::iterator kkk = cluster[i].begin();
+          kkk != cluster[i].end(); kkk++)
+        {
+          if (*j == *kkk) break;
+          if (!available[*j] || !available[*kkk]) continue;
+          if (S.at<double>(*j, *kkk) < Md) continue;
+          if (itemlist[*j].count <= 0) continue;
+          if (itemlist[*kkk].count <= 0) continue;
+          if (*j == nowselect || *kkk == nowselect)
+          {
+            connected[*j] = true;
+            connected[*kkk] = true;
+            continue;
+          }
+          else
+          {
+            if (state == 1) continue;
+            hasline[*j] = true;
+            hasline[*kkk] = true;
+            line(display, itemlist[*j].pos, itemlist[*kkk].pos, line_n, 1);
+            connected[*j] |= false;
+            connected[*kkk] |= false;
+          }
+          if (showcluster != -1 && state != 1)
+          {
+            stringstream buffer;
+            string num;
+            buffer << _S.at<double>(*j, *kkk);
+            buffer >> num;
+            putText(display, num, (itemlist[*j].pos + itemlist[*kkk].pos) / 2,
+              CV_FONT_HERSHEY_COMPLEX, 0.4, Scalar::all(0));
+          }
+        }
+      }
+    }
+    for (int i = 0; i < cluster.size(); i++)
+    {
+      if (showcluster != -1)
+      {
+        if (showcluster != i) continue;
+      }
+      for (set<int>::iterator j = cluster[i].begin();
+        j != cluster[i].end(); j++)
+      {
+        for (set<int>::iterator kkk = cluster[i].begin();
+          kkk != cluster[i].end(); kkk++)
+        {
+          if (*j == *kkk) break;
+          if (!available[*j] || !available[*kkk]) continue;
+          if (S.at<double>(*j, *kkk) < Md) continue;
+          if (itemlist[*j].count <= 0) continue;
+          if (itemlist[*kkk].count <= 0) continue;
+          if (*j == nowselect || *kkk == nowselect)
+          {
+            line(display, itemlist[*j].pos, itemlist[*kkk].pos, line_s, 1);
+            hasline[*j] = true;
+            hasline[*kkk] = true;
+            if (showcluster != -1 || state == 1)
+            {
+              stringstream buffer;
+              string num;
+              buffer << _S.at<double>(*j, *kkk);
+              buffer >> num;
+              putText(display, num, (itemlist[*j].pos + itemlist[*kkk].pos) / 2,
+                CV_FONT_HERSHEY_COMPLEX, 0.4, Scalar::all(0));
+            }
+          }
+        }
+      }
+    }
+    for (int i = 0; i < itemlist.size(); i++)
+    {
+      if (!available[i]) continue;
+      if (showcluster != -1)
+      {
+        bool flag = false;
+        for (int j = 0; j < itemlist[i].inpart.size(); j++)
+        {
+          if (itemlist[i].inpart[j] == showcluster)
+          {
+            flag = true;
+            break;
+          }
+        }
+        if (!flag) continue;
+      }
+      int r = itemlist[i].count + minr;
+      itemlist[i].r = r;
+      Scalar color;
+      if (!hasline[i]) continue;
+      if (connected[i])
+        color = itemlist[i].color;
+      else
+        color = alpha * itemlist[i].color + (1 - alpha)*Scalar(255, 255, 255);
+      if (itemlist[i].count>0)
+      {
+        circle(display, itemlist[i].pos, r, color, -1);
+        seen[i] = true;
+        if (showcluster != -1 || state == 1)
+        {
+          stringstream buffer;
+          buffer << i;
+          string num;
+          buffer >> num;
+          putText(display, num, itemlist[i].pos, CV_FONT_BLACK,
+            itemlist[i].count / 15.0 + 0.4,
+            Scalar::all(0));
+        }
+      }
+    }
 
+    // event handler
+    if (_mouse_event == CV_EVENT_LBUTTONDBLCLK)
+    {
+      if (nowselect != -1)
+      {
+        state = 1;
+      }
+      else
+      {
+        state = 0;
+      }
+    }
+    else if (_mouse_event == CV_EVENT_MOUSEMOVE &&
+      (_mouse_flags & CV_EVENT_FLAG_LBUTTON) &&
+      nowselect != -1)
+    {
+      itemlist[nowselect].pos = _mouse_pos;
+    }
+    else if (lastclick != _mouse_counter &&
+      (_mouse_event == CV_EVENT_LBUTTONDOWN ||
+      (_mouse_flags & CV_EVENT_FLAG_LBUTTON)))
+    {
+      //_mouse_event = -1;
+      //cout << lastclick << ", " << _mouse_counter << endl;
+      lastclick = _mouse_counter;
+      int minr = 100;
+      int minn = -1;
+      for (int i = 0; i < itemlist.size(); i++)
+      {
+        int x = _mouse_pos.x - itemlist[i].pos.x;
+        int y = _mouse_pos.y - itemlist[i].pos.y;
+        int r = x*x + y*y;
+        if (r < itemlist[i].r*itemlist[i].r &&
+          seen[i])
+        {
+          minr = r;
+          minn = i;
+        }
+      }
+      if (minn == -1) nowselect = -1;
+      else
+      {
+        if (minn != nowselect)
+        {
+          nowselect = minn;
+          wcout << "Selected: Item #" << minn << endl;
+          wcout << "Name: " << itemlist[minn].name << endl;
+          wcout << "Count: " << itemlist[minn].count << endl;
+          wcout << endl;
+        }
+      }
+    }
 
-	int counter = 0;
-	int width = 640;
-	int height = 480;
-	int cthres = 3;
-	int nowselect = -1;
-	int nowmove = -1;
-	int showcluster = -1;
-	int lastclick = mouse_counter;
-	int state = 0;
-	double Mt = -100000;
-	double M = -100000;
-	double Mr = 0.8;
-	double Md = -100000;
-	double alpha = 0.3;
-	Cluster cluster;
+    imshow(winname, display);
+    __status_painter_on = true;
+    char choice = waitKey(10);
+    string command;
+    switch (choice)
+    {
+    case 27:
+      if (state == 0)
+      {
+        destroyAllWindows();
+        __status_painter_on = false;
+        return 0;
+      }
+      state--;
+      break;
+    default:imshow(winname, display);
+    }
+  }
+  return 0;
+  __status_painter_on = false;
+}
 
+static void init()
+{
+  Mat S = _S.clone();
+  cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
+  //cout << "init: itemlist.size() = " << itemlist.size() << endl;
+  connected = new bool[itemlist.size()];
+  seen = new bool[itemlist.size()];
+  available = new bool[itemlist.size()];
+  hasline = new bool[itemlist.size()];
+}
 
-
-	// Initialize content
-	Mat S = _S.clone();
-	string winname = "Cluster View";
-	vector<Item> itemlist;
-	cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height,itemlist, namelist);
-	bool *connected = new bool[itemlist.size()];
-	bool *seen = new bool[itemlist.size()];
-	bool *available = new bool[itemlist.size()];
-	for (int i = 0; i < itemlist.size(); i++)
-	{
-		available[i] = true;
-	}
-	Mat display(height, width, CV_8UC3, Scalar::all(255));
-	imshow(winname, display);
-	setMouseCallback(winname, mouseCallBack);
-	//cout << itemlist.size() << endl;
-	while (1)
-	{
-		//memset(connected, false, sizeof(connected));
-		for (int i = 0; i < itemlist.size(); i++)
-		{
-			connected[i] = false;
-			seen[i] = false;
-		}
-		display = Mat(height, width, CV_8UC3, Scalar::all(255));
-		// draw
-		for (int i = 0; i < cluster.size(); i++)
-		{
-			if (showcluster != -1)
-			{
-				if (showcluster != i) continue;
-			}
-			for (set<int>::iterator j = cluster[i].begin();
-					 j != cluster[i].end(); j++)
-			{
-				for (set<int>::iterator kkk = cluster[i].begin();
-						 kkk != cluster[i].end(); kkk++)
-				{
-					if (*j == *kkk) break;
-					if (!available[*j] || !available[*kkk]) continue;
-					if (S.at<double>(*j, *kkk) >= Md) continue;
-					if (itemlist[*j].count <= 0) continue;
-					if (itemlist[*kkk].count <= 0) continue;
-					if (*j == nowselect || *kkk == nowselect)
-					{
-						connected[*j] = true;
-						connected[*kkk] = true;
-						continue;
-					}
-					else
-					{
-						if (state == 1) continue;
-						line(display, itemlist[*j].pos, itemlist[*kkk].pos, line_n, 1);
-						connected[*j] |= false;
-						connected[*kkk] |= false;
-					}
-					if (showcluster != -1 && state != 1)
-					{
-						stringstream buffer;
-						string num;
-						buffer << _S.at<double>(*j, *kkk);
-						buffer >> num;
-						putText(display, num, (itemlist[*j].pos + itemlist[*kkk].pos)/2,
-										CV_FONT_HERSHEY_COMPLEX, 0.4, Scalar::all(0));
-					}
-				}
-			}
-		}
-		for (int i = 0; i < cluster.size(); i++)
-		{
-			if (showcluster != -1)
-			{
-				if (showcluster != i) continue;
-			}
-			for (set<int>::iterator j = cluster[i].begin();
-					 j != cluster[i].end(); j++)
-			{
-				for (set<int>::iterator kkk = cluster[i].begin();
-						 kkk != cluster[i].end(); kkk++)
-				{
-					if (*j == *kkk) break;
-					if (!available[*j] || !available[*kkk]) continue;
-					if (S.at<double>(*j, *kkk) >= Md) continue;
-					if (itemlist[*j].count <= 0) continue;
-					if (itemlist[*kkk].count <= 0) continue;
-					if (*j == nowselect || *kkk == nowselect)
-					{
-						line(display, itemlist[*j].pos, itemlist[*kkk].pos, line_s, 1);
-						if (showcluster != -1 || state == 1)
-						{
-							stringstream buffer;
-							string num;
-							buffer << _S.at<double>(*j, *kkk);
-							buffer >> num;
-							putText(display, num, (itemlist[*j].pos + itemlist[*kkk].pos) / 2,
-											CV_FONT_HERSHEY_COMPLEX, 0.4, Scalar::all(0));
-						}
-					}
-				}
-			}
-		}
-		for (int i = 0; i < itemlist.size(); i++)
-		{
-			if (!available[i]) continue;
-			if (showcluster != -1)
-			{
-				bool flag = false;
-				for (int j = 0; j < itemlist[i].inpart.size(); j++)
-				{
-					if (itemlist[i].inpart[j] == showcluster)
-					{
-						flag = true;
-						break;
-					}
-				}
-				if (!flag) continue;
-			}
-			int r = itemlist[i].count + minr;
-			itemlist[i].r = r;
-			Scalar color;
-			if (connected[i])
-				color = itemlist[i].color;
-			else
-				color = alpha * itemlist[i].color + (1 - alpha)*Scalar(255, 255, 255);
-			if (itemlist[i].count>0)
-			{
-				circle(display, itemlist[i].pos, r, color, -1);
-				seen[i] = true;
-				if (showcluster != -1 || state == 1)
-				{
-					stringstream buffer;
-					buffer << i;
-					string num;
-					buffer >> num;
-					putText(display, num, itemlist[i].pos, CV_FONT_BLACK,
-									itemlist[i].count / 15.0 + 0.4,
-									Scalar::all(0));
-				}
-			}
-		}
-
-		// event handler
-		if (mouse_event == CV_EVENT_LBUTTONDBLCLK)
-		{
-			if (nowselect != -1)
-			{
-				state = 1;
-			}
-			else
-			{
-				state = 0;
-			}
-		}
-		else if (mouse_event == CV_EVENT_MOUSEMOVE &&
-				(mouse_flags & CV_EVENT_FLAG_LBUTTON) &&
-				nowselect != -1)
-		{
-			itemlist[nowselect].pos = mouse_pos;
-		}
-		else if (lastclick != mouse_counter &&
-				(mouse_event == CV_EVENT_LBUTTONDOWN ||
-				(mouse_flags & CV_EVENT_FLAG_LBUTTON)))
-		{
-			//mouse_event = -1;
-			//cout << lastclick << ", " << mouse_counter << endl;
-			lastclick = mouse_counter;
-			int minr = 100;
-			int minn = -1;
-			for (int i = 0; i < itemlist.size(); i++)
-			{
-				int x = mouse_pos.x - itemlist[i].pos.x;
-				int y = mouse_pos.y - itemlist[i].pos.y;
-				int r = x*x + y*y;
-				if (r < itemlist[i].r*itemlist[i].r &&
-						seen[i])
-				{
-					minr = r;
-					minn = i;
-				}
-			}
-			if (minn == -1) nowselect = -1;
-			else
-			{
-				if (minn != nowselect)
-				{
-					nowselect = minn;
-					wcout << "Selected: Item #" << minn << endl;
-					wcout << "Name: " << itemlist[minn].name << endl;
-					wcout << "Count: " << itemlist[minn].count << endl;
-					wcout << endl;
-				}
-			}
-		}
-
-		imshow(winname, display);
-		char choice = waitKey(10);
-		string command;
-		bool changed = false;
-		switch (choice)
-		{
-			case 27:
-				if (state == 0)
-				{
-					destroyAllWindows();
-					return;
-				}
-				state--;
-				break;
-			case '/':
-				//destroyAllWindows();
-				cout << "Command Line" << endl;
-				while (true)
-				{
-					cout << ">> ";
-					cin >> command;
-					if (command == "size")
-					{
-						cin >> width >> height;
-						//cout << "Recalculating cluster...";
-						//cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
-					}
-					else if (command == "mt")
-					{
-						cin >> Mt;
-						changed = true;
-						//cout << "Recalculating cluster...";
-						//cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
-						//cout << endl;
-					}
-					else if (command == "m")
-					{
-						cin >> M;
-						changed = true;
-						//cout << "Recalculating cluster...";
-						//cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
-						//cout << endl;
-					}
-					else if (command == "mr")
-					{
-						cin >> Mr;
-						changed = true;
-						//cout << "Recalculating cluster...";
-						//cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
-						//cout << endl;
-					}
-					else if (command == "md")
-					{
-						cin >> Md;
-						changed = true;
-					}
-					else if (command == "cthres")
-					{
-						cin >> cthres;
-						changed = true;
-					}
-					else if (command == "alpha")
-					{
-						cin >> alpha;
-					}
-					else if (command == "show")
-					{
-						if (showcluster == -1)
-							cout << "Num of clusters: " << cluster.size() << endl;
-						else
-							cout << "Showing cluster #" << showcluster << endl;
-						cout << "Mt: " << Mt << endl;
-						cout << "M: " << M << endl;
-						cout << "Mr: " << Mr << endl;
-						cout << "Md: " << Md << endl;
-						cout << "cthres: " << cthres << endl;
-						cout << "Size: " << width << " x " << height << endl;
-						cout << endl;
-						if (showcluster != -1)
-						{
-							cout << "Including:" << endl;
-							for (set<int>::iterator i = cluster[showcluster].begin();
-									 i != cluster[showcluster].end(); i++)
-							{
-								wcout << "Item #" << *i << endl;
-								wcout << "Name: " << itemlist[*i].name << endl;
-							}
-						}
-						cout << "Disable list: " << endl;
-						for (int i = 0; i < itemlist.size(); i++)
-						{
-							if (!available[i])
-							{
-								cout << "#" << i << " is disabled." << endl;
-							}
-						}
-					}
-					else if (command == "cluster")
-					{
-						int x;
-						cin >> x;
-						if (x < cluster.size() && x >= 0)
-							showcluster = x;
-						else
-						{
-							showcluster = -1;
-						}
-					}
-					else if (command == "s")
-					{
-						int a, b;
-						cin >> a >> b;
-						cout << "The value of S[" << a << "][" << b << "] is "
-							<< _S.at<double>(a, b) << endl;
-					}
-					else if (command == "switch")
-					{
-						int x;
-						cin >> x;
-						if (x >= 0 && x < itemlist.size())
-						{
-							available[x] = !available[x];
-							string xx = (available[x]) ? "TRUE" : "FALSE";
-							cout << "The state of #" << x << " is: "
-								<< xx << endl;
-						}
-					}
-					else if (command == "exit")
-					{
-						//imshow(winname, display);
-						//setMouseCallback(winname, mouseCallBack);
-						if (changed)
-						{
-							cout << "Recalculating cluster...";
-							cluster = Cluster();
-							itemlist = vector<Item>();
-							Mat S = _S.clone();
-							cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
-							cout << endl;
-						}
-						break;
-					}
-					else
-					{
-						cout << "Supported commands: " << endl;
-						cout << "show : display the current settings." << endl;
-						cout << "mt Mt_value: set the value of Mt" << endl;
-						cout << "m M_value: set the value of M" << endl;
-						cout << "mr Mr_value: set the value of Mr" << endl;
-						cout << "md Md_value: set the value of Md" << endl;
-						cout << "cthres cthres_value: set the value of cthres" << endl;
-						cout << "size WIDTH HEIGHT: set the window size." << endl;
-						cout << "cluster CLUSTER: set the cluster to show." << endl;
-						cout << "s A B: show the value of s[A][B]." << endl;
-						cout << "alpha ALPHA: set the alpha for unselected items." << endl;
-						cout << "exit: recalculate the clusters and leave command mode." << endl;
-					}
-				}
-				break;
-			default:imshow(winname, display);
-		}
-	}
+void LRSTools_GenerateUIView(Mat __S, vector<wstring> _namelist)
+{
+  wcout << "Starting graphical view..." << endl;
+  _S = __S;
+  namelist = _namelist;
+  init();
+  HANDLE painter = CreateThread(NULL, 0, draw_graphics, NULL, 0, NULL);
+  wcout << "Graphical view succeeded!" << endl;
+  //draw_graphics(0);
+  string command;
+  cout << "Command Line" << endl;
+  while (true)
+  {
+    cout << ">> ";
+    cin >> command;
+    if (command == "size")
+    {
+      cin >> width >> height;
+      cluster = Cluster();
+      itemlist = vector<Item>();
+      Mat S = _S.clone();
+      cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
+    }
+    else if (command == "mt")
+    {
+      cin >> Mt;
+      changed = true;
+      cluster = Cluster();
+      itemlist = vector<Item>();
+      Mat S = _S.clone();
+      cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
+    }
+    else if (command == "m")
+    {
+      cin >> M;
+      changed = true;
+      cluster = Cluster();
+      itemlist = vector<Item>();
+      Mat S = _S.clone();
+      cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
+    }
+    else if (command == "mr")
+    {
+      cin >> Mr;
+      changed = true;
+      cluster = Cluster();
+      itemlist = vector<Item>();
+      Mat S = _S.clone();
+      cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
+    }
+    else if (command == "md")
+    {
+      cin >> Md;
+      changed = true;
+      cluster = Cluster();
+      itemlist = vector<Item>();
+      Mat S = _S.clone();
+      cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
+    }
+    else if (command == "cthres")
+    {
+      cin >> cthres;
+      changed = true;
+      cluster = Cluster();
+      itemlist = vector<Item>();
+      Mat S = _S.clone();
+      cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
+    }
+    else if (command == "alpha")
+    {
+      cin >> alpha;
+    }
+    else if (command == "show")
+    {
+      if (showcluster == -1)
+        cout << "Num of clusters: " << cluster.size() << endl;
+      else
+        cout << "Showing cluster #" << showcluster << endl;
+      cout << "Mt: " << Mt << endl;
+      cout << "M: " << M << endl;
+      cout << "Mr: " << Mr << endl;
+      cout << "Md: " << Md << endl;
+      cout << "cthres: " << cthres << endl;
+      cout << "Size: " << width << " x " << height << endl;
+      cout << endl;
+      if (showcluster != -1)
+      {
+        cout << "Including:" << endl;
+        for (set<int>::iterator i = cluster[showcluster].begin();
+          i != cluster[showcluster].end(); i++)
+        {
+          wcout << "Item #" << *i << endl;
+          wcout << "Name: " << itemlist[*i].name << endl;
+        }
+      }
+      cout << "Disable list: " << endl;
+      for (int i = 0; i < itemlist.size(); i++)
+      {
+        if (!available[i])
+        {
+          cout << "#" << i << " is disabled." << endl;
+        }
+      }
+    }
+    else if (command == "cluster")
+    {
+      int x;
+      cin >> x;
+      if (x < cluster.size() && x >= 0)
+        showcluster = x;
+      else
+      {
+        showcluster = -1;
+      }
+    }
+    else if (command == "s")
+    {
+      int a, b;
+      cin >> a >> b;
+      cout << "The value of S[" << a << "][" << b << "] is "
+        << _S.at<double>(a, b) << endl;
+    }
+    else if (command == "switch")
+    {
+      int x;
+      cin >> x;
+      if (x >= 0 && x < itemlist.size())
+      {
+        available[x] = !available[x];
+        string xx = (available[x]) ? "TRUE" : "FALSE";
+        cout << "The state of #" << x << " is: "
+          << xx << endl;
+      }
+    }
+    else if (command == "calculate")
+    {
+      //imshow(winname, display);
+      //setMouseCallback(winname, mouseCallBack);
+      if (changed)
+      {
+        cout << "Recalculating cluster...";
+        cluster = Cluster();
+        itemlist = vector<Item>();
+        Mat S = _S.clone();
+        cluster = ui_getItemlist(S, Mt, M, Mr, cthres, width, height, itemlist, namelist);
+        cout << endl;
+        changed = false;
+      }
+    }
+    else if (command == "plot")
+    {
+      if (__status_painter_on) cout << "The plot is on." << endl;
+      else painter = CreateThread(NULL, 0, draw_graphics, NULL, 0, NULL);
+    }
+    else if (command == "quit")
+    {
+      break;
+    }
+    else
+    {
+      cout << "Supported commands: " << endl;
+      cout << "show : display the current settings." << endl;
+      cout << "mt Mt_value: set the value of Mt" << endl;
+      cout << "m M_value: set the value of M" << endl;
+      cout << "mr Mr_value: set the value of Mr" << endl;
+      cout << "md Md_value: set the value of Md" << endl;
+      cout << "cthres cthres_value: set the value of cthres" << endl;
+      cout << "size WIDTH HEIGHT: set the window size." << endl;
+      cout << "cluster CLUSTER: set the cluster to show." << endl;
+      cout << "s A B: show the value of s[A][B]." << endl;
+      cout << "alpha ALPHA: set the alpha for unselected items." << endl;
+    }
+  }
 }
