@@ -81,14 +81,20 @@ int main(int argc, char **argv)
 	}
 	dataframe = Mat(daycount, namecount, CV_8UC1, Scalar::all(0));
 	Mat toshow = dataframe.clone();
+
+	wfstream translate("translate.txt", ios::out);
+	if (translate.fail()) return 1;
 	for (int i = 0; i < linecount; i++)
 	{
 		infile >> date >> name;
 		int daten = datepairs[date];
 		int namen = namepairs[name];
+		translate << daten << " " << namen << endl;
 		dataframe.at<uchar>(daten, namen) = (uchar)1;
 		toshow.at<uchar>(daten, namen) = (uchar)255;
 	}
+	translate.close();
+
 	dataframe = dataframe.t();
 	toshow = toshow.t();
 	//imshow("dataframe", toshow);
