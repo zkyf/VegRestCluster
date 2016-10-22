@@ -84,6 +84,7 @@ int main(int argc, char **argv)
 
 	wfstream translate("translate.txt", ios::out);
 	if (translate.fail()) return 1;
+	Mat oU(dataframe.size(), CV_64F, Scalar::all(0));
 	for (int i = 0; i < linecount; i++)
 	{
 		infile >> date >> name;
@@ -92,10 +93,12 @@ int main(int argc, char **argv)
 		translate << daten << " " << namen << endl;
 		dataframe.at<uchar>(daten, namen) = (uchar)1;
 		toshow.at<uchar>(daten, namen) = (uchar)255;
+		oU.at<double>(daten, namen) = 1.0;
 	}
 	translate.close();
 
 	dataframe = dataframe.t();
+	oU = oU.t();
 	toshow = toshow.t();
 	//imshow("dataframe", toshow);
 	//waitKey(0);
@@ -105,7 +108,7 @@ int main(int argc, char **argv)
 
 	Mat U = GenerateU(dataframe);
 
-	Mat sigma = GenerateSigma(U);
+	Mat sigma = GenerateSigma(oU);
 
 	Mat S = GenerateS(U, sigma);
 
@@ -120,6 +123,6 @@ int main(int argc, char **argv)
 
 	//system("pause");
 
-	LRSTools_GenerateUIView(S, namelist);
+	LRSTools_GenerateUIView(S, dataframe, namelist);
 	return 0;
 }

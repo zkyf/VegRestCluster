@@ -59,6 +59,6 @@ Cluster LRS(Mat _S, double Mt, double M, double Mr = 0.8);
 Mat LRSTools_ViewSubjectRlt(Mat data);
 Mat LRSTools_GenerateSignedView(Mat data);
 Mat LRSTools_GenerateLogView(Mat data);
-void LRSTools_GenerateUIView(Mat _S, vector<wstring> namelist);
+void LRSTools_GenerateUIView(Mat _S, Mat dataframe, vector<wstring> namelist);
 
 #endif

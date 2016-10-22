@@ -501,10 +501,10 @@ static int nowmove = -1;
 static int showcluster = -1;
 static int lastclick = _mouse_counter;
 static int state = 0;
-static double Mt = 200000;
-static double M = 200000;
+static double Mt = 10000000;
+static double M = 10000000;
 static double Mr = 0.8;
-static double Md = 200000;
+static double Md = 10000000;
 static double alpha = 0.3;
 static Cluster cluster;
 static bool changed = false;
@@ -711,7 +711,7 @@ DWORD WINAPI draw_graphics(LPVOID parameter)
           wcout << "Selected: Item #" << minn << endl;
           wcout << "Name: " << itemlist[minn].name << endl;
           wcout << "Count: " << itemlist[minn].count << endl;
-          wcout << endl;
+          wcout << endl << ">> ";
         }
       }
     }
@@ -749,7 +749,7 @@ static void init()
   hasline = new bool[itemlist.size()];
 }
 
-void LRSTools_GenerateUIView(Mat __S, vector<wstring> _namelist)
+void LRSTools_GenerateUIView(Mat __S, Mat dataframe, vector<wstring> _namelist)
 {
   wcout << "Starting graphical view..." << endl;
   _S = __S;
@@ -903,6 +903,71 @@ void LRSTools_GenerateUIView(Mat __S, vector<wstring> _namelist)
       if (__status_painter_on) cout << "The plot is on." << endl;
       else painter = CreateThread(NULL, 0, draw_graphics, NULL, 0, NULL);
     }
+		else if (command == "count")
+		{
+			int a, b;
+			cin >> a >> b;
+			int acount = 0, bcount = 0, abcount = 0;
+			int *sizelista = new int[dataframe.rows];
+			int *sizelistb = new int[dataframe.rows];
+			int *sizelistab = new int[dataframe.rows];
+			ZeroMemory(sizelista, sizeof(int)*dataframe.rows);
+			ZeroMemory(sizelistb, sizeof(int)*dataframe.rows);
+			ZeroMemory(sizelistab, sizeof(int)*dataframe.rows);
+			for (int i = 0; i < dataframe.cols; i++)
+			{
+				if (dataframe.at<uchar>(a, i) > 0)
+				{
+					acount++;
+					int size = 0;
+					for (int j = 0; j < dataframe.rows; j++)
+					{
+						if (dataframe.at<uchar>(j, i) > 0) size++;
+					}
+					sizelista[size]++;
+				}
+				if (dataframe.at<uchar>(b, i) > 0)
+				{
+					bcount++;
+					int size = 0;
+					for (int j = 0; j < dataframe.rows; j++)
+					{
+						if (dataframe.at<uchar>(j, i) > 0) size++;
+					}
+					sizelistb[size]++;
+				}
+				if (dataframe.at<uchar>(a, i) > 0 && dataframe.at<uchar>(b, i) > 0)
+				{
+					abcount++;
+					int size = 0;
+					for (int j = 0; j < dataframe.rows; j++)
+					{
+						if (dataframe.at<uchar>(j, i) > 0) size++;
+					}
+					sizelistab[size]++;
+				}
+			}
+			wcout << "Item #" << a << namelist[a] << ": " << acount << endl;
+			for (int i = 0; i < dataframe.rows; i++)
+			{
+				if (sizelista[i] > 0) cout << "Size=" << i << ", count=" << sizelista[i] << endl;
+			}
+			wcout << "Item #" << b << namelist[b] << ": " << bcount << endl;
+			for (int i = 0; i < dataframe.rows; i++)
+			{
+				if (sizelistb[i] > 0) cout << "Size=" << i << ", count=" << sizelistb[i] << endl;
+			}
+			wcout << "Together: " << abcount << endl;
+			for (int i = 0; i < dataframe.rows; i++)
+			{
+				if (sizelistab[i] > 0) cout << "Size=" << i << ", count=" << sizelistab[i] << endl;
+			}
+			wcout << endl;
+
+			delete[] sizelista;
+			delete[] sizelistb;
+			delete[] sizelistab;
+		}
     else if (command == "quit")
     {
       break;
@@ -910,16 +975,17 @@ void LRSTools_GenerateUIView(Mat __S, vector<wstring> _namelist)
     else
     {
       cout << "Supported commands: " << endl;
-      cout << "show : display the current settings." << endl;
-      cout << "mt Mt_value: set the value of Mt" << endl;
-      cout << "m M_value: set the value of M" << endl;
-      cout << "mr Mr_value: set the value of Mr" << endl;
-      cout << "md Md_value: set the value of Md" << endl;
+      cout << "show :               display the current settings." << endl;
+      cout << "mt Mt_value:         set the value of Mt" << endl;
+      cout << "m M_value:           set the value of M" << endl;
+      cout << "mr Mr_value:         set the value of Mr" << endl;
+      cout << "md Md_value:         set the value of Md" << endl;
       cout << "cthres cthres_value: set the value of cthres" << endl;
-      cout << "size WIDTH HEIGHT: set the window size." << endl;
-      cout << "cluster CLUSTER: set the cluster to show." << endl;
-      cout << "s A B: show the value of s[A][B]." << endl;
-      cout << "alpha ALPHA: set the alpha for unselected items." << endl;
+      cout << "size WIDTH HEIGHT:   set the window size." << endl;
+      cout << "cluster CLUSTER:     set the cluster to show." << endl;
+      cout << "s A B:               show the value of s[A][B]." << endl;
+      cout << "alpha ALPHA:         set the alpha for unselected items." << endl;
+			cout << "switch ID:           turn off or turn on a node." << endl;
     }
   }
 }
